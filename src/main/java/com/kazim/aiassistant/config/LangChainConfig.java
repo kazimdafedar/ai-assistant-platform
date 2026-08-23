@@ -29,9 +29,9 @@ public class LangChainConfig {
             @Value("${app.openai.chat-model:gpt-4o-mini}") String modelName,
             @Value("${app.demo-mode:true}") boolean demoMode
     ) {
-        if (!demoMode && apiKey != null && !apiKey.isBlank()) {
+        if (!demoMode && OpenAiApiKeyValidator.isUsableOpenAiApiKey(apiKey)) {
             return OpenAiChatModel.builder()
-                    .apiKey(apiKey)
+                    .apiKey(apiKey.trim())
                     .modelName(modelName)
                     .temperature(0.3)
                     .build();

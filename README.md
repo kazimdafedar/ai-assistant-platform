@@ -53,15 +53,21 @@ Swagger UI: http://localhost:8081/swagger-ui.html
 
 ### Demo mode (default — no API key needed)
 
-Works out of the box with a local demo LLM and local embeddings.
+Works out of the box with a local demo LLM and local embeddings. **Leave `APP_DEMO_MODE=true` (the default) or omit `OPENAI_API_KEY` entirely.**
+
+If you set `APP_DEMO_MODE=false` with a blank, placeholder, or example key (e.g. `sk-your-key` from docs), the app automatically falls back to demo mode instead of calling OpenAI.
 
 ### Production mode (OpenAI)
 
+Requires a **real** OpenAI API key:
+
 ```bash
-export OPENAI_API_KEY=sk-your-key
+export OPENAI_API_KEY=sk-proj-...your-real-key...
 export APP_DEMO_MODE=false
 mvn spring-boot:run
 ```
+
+Do **not** copy placeholder values like `sk-your-key` — those are documentation examples only.
 
 ## API examples
 
