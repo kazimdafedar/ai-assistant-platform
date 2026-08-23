@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: ai-assistant-platform
+
+server:
+  port: ${PORT:8081}
+
+app:
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    chat-model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+  demo-mode: ${APP_DEMO_MODE:true}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
