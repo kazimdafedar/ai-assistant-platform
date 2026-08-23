@@ -59,7 +59,7 @@ If you set `APP_DEMO_MODE=false` with a blank, placeholder, or example key (e.g.
 
 ### Production mode (OpenAI)
 
-Requires a **real** OpenAI API key:
+Requires a **real** OpenAI API key with **billing enabled and available credits**:
 
 ```bash
 export OPENAI_API_KEY=sk-proj-...your-real-key...
@@ -68,6 +68,8 @@ mvn spring-boot:run
 ```
 
 Do **not** copy placeholder values like `sk-your-key` — those are documentation examples only.
+
+If you see `insufficient_quota`, your key is valid but the account has no prepaid balance or has hit a spend cap. Add credits at [OpenAI billing](https://platform.openai.com/account/billing), or switch back to demo mode (`APP_DEMO_MODE=true`, the default) to run without OpenAI.
 
 ## API examples
 
