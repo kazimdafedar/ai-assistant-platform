@@ -2,11 +2,12 @@ package com.kazim.aiassistant.config;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Offline-friendly chat model for local demos and CI.
@@ -14,17 +15,21 @@ import java.util.stream.Collectors;
  */
 public class DemoChatLanguageModel implements ChatLanguageModel {
 
+    private static final String RAG_QUESTION_MARKER = "\n\nQuestion: ";
+
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages) {
-        String userText = messages.stream()
-                .filter(message -> message.type() == dev.langchain4j.data.message.ChatMessageType.USER)
-                .map(Object::toString)
-                .collect(Collectors.joining("\n"));
+        String lastUserText = messages.stream()
+                .filter(message -> message.type() == ChatMessageType.USER)
+                .reduce((first, second) -> second)
+                .map(DemoChatLanguageModel::messageText)
+                .orElse("");
 
-        if (userText.contains("Context:")) {
-            String context = userText.substring(userText.indexOf("Context:") + "Context:".length(),
-                    userText.indexOf("\n\nQuestion:")).trim();
-            String question = userText.substring(userText.indexOf("Question:") + "Question:".length()).trim();
+        int questionMarker = lastUserText.lastIndexOf(RAG_QUESTION_MARKER);
+        if (questionMarker >= 0 && lastUserText.contains("Context:")) {
+            int contextStart = lastUserText.indexOf("Context:") + "Context:".length();
+            String context = lastUserText.substring(contextStart, questionMarker).trim();
+            String question = lastUserText.substring(questionMarker + RAG_QUESTION_MARKER.length()).trim();
             String answer = """
                     [Demo mode — set OPENAI_API_KEY and APP_DEMO_MODE=false for real LLM answers]
 
@@ -35,7 +40,6 @@ public class DemoChatLanguageModel implements ChatLanguageModel {
             return Response.from(AiMessage.from(answer.trim()));
         }
 
-        String lastUserMessage = messages.isEmpty() ? "" : messages.get(messages.size() - 1).toString();
         return Response.from(AiMessage.from("""
                 [Demo mode — set OPENAI_API_KEY and APP_DEMO_MODE=false for ChatGPT-like responses]
 
@@ -43,7 +47,15 @@ public class DemoChatLanguageModel implements ChatLanguageModel {
                 Try POST /api/rag/documents then POST /api/rag/ask, or POST /api/support/chat.
 
                 Your message: %s
-                """.formatted(lastUserMessage).trim()));
+                """.formatted(lastUserText).trim()));
+    }
+
+    private static String messageText(ChatMessage message) {
+        return switch (message.type()) {
+            case USER -> ((UserMessage) message).singleText();
+            case AI -> ((AiMessage) message).text();
+            default -> message.toString();
+        };
     }
 
     private static String summarizeContext(String context) {

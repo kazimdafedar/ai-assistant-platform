@@ -49,7 +49,14 @@ public class RagService {
         metadata.put("documentId", documentId);
         Document document = Document.from(request.content(), metadata);
 
-        List<TextSegment> segments = splitter.split(document);
+        List<TextSegment> segments = splitter.split(document).stream()
+                .map(segment -> {
+                    Metadata segmentMetadata = segment.metadata().copy();
+                    segmentMetadata.put("title", request.title());
+                    segmentMetadata.put("documentId", documentId);
+                    return TextSegment.from(segment.text(), segmentMetadata);
+                })
+                .toList();
         List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
         embeddingStore.addAll(embeddings, segments);
 
@@ -77,11 +84,11 @@ public class RagService {
                 """.formatted(context, request.question());
 
         Response<dev.langchain4j.data.message.AiMessage> response =
-                chatLanguageModel.generate(UserMessage.from(prompt));
+                chatLanguageModel.generate(List.of(UserMessage.from(prompt)));
 
         List<RagAskResponse.SourceCitation> sources = matches.stream()
                 .map(match -> new RagAskResponse.SourceCitation(
-                        match.embedded().metadata().getString("title"),
+                        segmentTitle(match.embedded()),
                         excerpt(match.embedded().text()),
                         match.score()
                 ))
@@ -92,5 +99,15 @@ public class RagService {
 
     private static String excerpt(String text) {
         return text.length() > 180 ? text.substring(0, 180) + "..." : text;
+    }
+
+    private static String segmentTitle(TextSegment segment) {
+        Metadata metadata = segment.metadata();
+        String title = metadata.getString("title");
+        if (title != null && !title.isBlank()) {
+            return title;
+        }
+        String documentId = metadata.getString("documentId");
+        return documentId != null ? documentId : "Untitled";
     }
 }
